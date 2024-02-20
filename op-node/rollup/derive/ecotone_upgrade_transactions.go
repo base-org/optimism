@@ -86,7 +86,7 @@ func EcotoneNetworkUpgradeTransactions() ([]hexutil.Bytes, error) {
 		Value:               big.NewInt(0),
 		Gas:                 50_000,
 		IsSystemTransaction: false,
-		Data:                upgradeToCalldata(newL1BlockAddress),
+		Data:                UpgradeToCalldata(newL1BlockAddress),
 	}).MarshalBinary()
 
 	if err != nil {
@@ -103,7 +103,7 @@ func EcotoneNetworkUpgradeTransactions() ([]hexutil.Bytes, error) {
 		Value:               big.NewInt(0),
 		Gas:                 50_000,
 		IsSystemTransaction: false,
-		Data:                upgradeToCalldata(newGasPriceOracleAddress),
+		Data:                UpgradeToCalldata(newGasPriceOracleAddress),
 	}).MarshalBinary()
 
 	if err != nil {
@@ -147,7 +147,7 @@ func EcotoneNetworkUpgradeTransactions() ([]hexutil.Bytes, error) {
 	return upgradeTxns, nil
 }
 
-func upgradeToCalldata(addr common.Address) []byte {
+func UpgradeToCalldata(addr common.Address) []byte {
 	buf := bytes.NewBuffer(make([]byte, 0, 4+20))
 	if err := solabi.WriteSignature(buf, UpgradeToFuncBytes4); err != nil {
 		panic(fmt.Errorf("failed to write upgradeTo signature data: %w", err))
