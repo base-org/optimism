@@ -82,7 +82,7 @@ func FjordNetworkUpgradeTransactions() ([]hexutil.Bytes, error) {
 		Value:               big.NewInt(0),
 		Gas:                 50_000,
 		IsSystemTransaction: false,
-		Data:                UpgradeToCalldata(fjordL1BlockAddress),
+		Data:                upgradeToCalldata(fjordL1BlockAddress),
 	}).MarshalBinary()
 
 	if err != nil {
@@ -99,7 +99,7 @@ func FjordNetworkUpgradeTransactions() ([]hexutil.Bytes, error) {
 		Value:               big.NewInt(0),
 		Gas:                 50_000,
 		IsSystemTransaction: false,
-		Data:                UpgradeToCalldata(fjordGasPriceOracleAddress),
+		Data:                upgradeToCalldata(fjordGasPriceOracleAddress),
 	}).MarshalBinary()
 
 	if err != nil {
