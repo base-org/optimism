@@ -45,7 +45,7 @@ func FjordNetworkUpgradeTransactions() ([]hexutil.Bytes, error) {
 		To:                  nil,
 		Mint:                big.NewInt(0),
 		Value:               big.NewInt(0),
-		Gas:                 375_000, // TODO
+		Gas:                 420_000,
 		IsSystemTransaction: false,
 		Data:                l1BlockFjordDeploymentBytecode,
 	}).MarshalBinary()
@@ -63,7 +63,7 @@ func FjordNetworkUpgradeTransactions() ([]hexutil.Bytes, error) {
 		To:                  nil,
 		Mint:                big.NewInt(0),
 		Value:               big.NewInt(0),
-		Gas:                 1_000_000, // TODO
+		Gas:                 1_450_000,
 		IsSystemTransaction: false,
 		Data:                gasPriceOracleFjordDeploymentBytecode,
 	}).MarshalBinary()
