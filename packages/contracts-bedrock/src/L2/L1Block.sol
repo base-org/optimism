@@ -50,7 +50,7 @@ contract L1Block is ISemver {
     uint256 public blobBaseFee;
 
     /// @custom:semver 1.3.0
-    string public constant version = "1.3.0";
+    string public constant version = "1.2.0";
 
     /// @custom:legacy
     /// @notice Updates the L1 block values.
