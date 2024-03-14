@@ -34,6 +34,11 @@ contract GasPriceOracle is ISemver {
     /// @notice Indicates whether the network has gone through the Fjord upgrade.
     bool public isFjord;
 
+    // Hardcoded values for the Fjord upgrade calculation
+    int32 private constant COST_INTERCEPT = -27_321_890;
+    int32 private constant COST_FASTLZ_COEF = 1_031_462;
+    int32 private constant COST_TX_SIZE_COEF = -88_664;
+
     /// @notice Computes the L1 portion of the fee based on the size of the rlp encoded input
     ///         transaction, the current L1 base fee, and the various dynamic parameters.
     /// @param _data Unsigned fully RLP-encoded transaction to get the L1 fee for.
@@ -120,24 +125,6 @@ contract GasPriceOracle is ISemver {
         return L1Block(Predeploys.L1_BLOCK_ATTRIBUTES).blobBaseFeeScalar();
     }
 
-    /// @notice Retrieves the current cost intercept.
-    /// @return Current cost intercept.
-    function costIntercept() public view returns (int32) {
-        return L1Block(Predeploys.L1_BLOCK_ATTRIBUTES).costIntercept();
-    }
-
-    /// @notice Retrieves the current cost FastLZ coefficient.
-    /// @return Current cost FastLZ coefficient.
-    function costFastlzCoef() public view returns (int32) {
-        return L1Block(Predeploys.L1_BLOCK_ATTRIBUTES).costFastlzCoef();
-    }
-
-    /// @notice Retrieves the current cost TxSize coefficient.
-    /// @return Current cost TxSize coefficient.
-    function costTxSizeCoef() public view returns (int32) {
-        return L1Block(Predeploys.L1_BLOCK_ATTRIBUTES).costTxSizeCoef();
-    }
-
     /// @custom:legacy
     /// @notice Retrieves the number of decimals used in the scalar.
     /// @return Number of decimals used in the scalar.
@@ -186,7 +173,7 @@ contract GasPriceOracle is ISemver {
         // add 68 to both size values to account for unsigned tx:
         uint256 fastlzSize = LibZip.flzCompress(_data).length + 68;
         uint256 txSize = _data.length + 68;
-        int256 cost = costIntercept() + costFastlzCoef() * int256(fastlzSize) + costTxSizeCoef() * int256(txSize);
+        int256 cost = COST_INTERCEPT + COST_FASTLZ_COEF * int256(fastlzSize) + COST_TX_SIZE_COEF * int256(txSize);
         if (cost < 0) {
             cost = 0;
         }
