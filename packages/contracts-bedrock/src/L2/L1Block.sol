@@ -138,14 +138,14 @@ contract L1Block is ISemver {
                 mstore(0x00, 0x3cc50b45) // 0x3cc50b45 is the 4-byte selector of "NotDepositor()"
                 revert(0x1C, 0x04) // returns the stored 4-byte selector from above
             }
-            // sequencenum (uint64), blobBaseFeeScalar (uint32), baseFeeScalar (uint32), costTxSizeCoef (int32), costFastlzCoef (int32), costIntercept (int32)
-            sstore(sequenceNumber.slot, or(shr(128, calldataload(4)), shl(128, shr(160, calldataload(164)))))
+            // sequencenum (uint64), blobBaseFeeScalar (uint32), baseFeeScalar (uint32)
+            sstore(sequenceNumber.slot, shr(128, calldataload(4)))
             // number (uint64) and timestamp (uint64)
             sstore(number.slot, shr(128, calldataload(20)))
-            sstore(basefee.slot, calldataload(36)) // uint256
-            sstore(blobBaseFee.slot, calldataload(68)) // uint256
-            sstore(hash.slot, calldataload(100)) // bytes32
-            sstore(batcherHash.slot, calldataload(132)) // bytes32
+            sstore(basefee.slot, calldataload(36)) // uint256 basefee
+            sstore(blobBaseFee.slot, calldataload(68)) // uint256 blobBaseFee
+            sstore(hash.slot, calldataload(100)) // bytes32 hash
+            sstore(batcherHash.slot, calldataload(132)) // bytes32 batcherHash
         }
     }
 }
