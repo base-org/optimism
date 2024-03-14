@@ -35,15 +35,6 @@ contract L1Block is ISemver {
     /// @notice The scalar value applied to the L1 base fee portion of the blob-capable L1 cost func.
     uint32 public baseFeeScalar;
 
-    /// @notice The tx size coefficient from the linear regression of the L1 cost func.
-    int32 public costTxSizeCoef;
-
-    /// @notice The FastLZ coefficient from the linear regression of the L1 cost func.
-    int32 public costFastlzCoef;
-
-    /// @notice The intercept from the linear regression of the L1 cost func.
-    int32 public costIntercept;
-
     /// @notice The versioned hash to authenticate the batcher by.
     bytes32 public batcherHash;
 
