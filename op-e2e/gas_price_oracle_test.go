@@ -57,7 +57,7 @@ func TestGasPriceOracle(t *testing.T) {
 		costIntercept  int32  = -27_321_890
 	)
 
-	inputs := []interface{}{costIntercept, costFastlzCoef, costTxSizeCoef, baseFeeScalar, blobFeeScalar, sequenceNumber}
+	inputs := []interface{}{baseFeeScalar, blobFeeScalar, sequenceNumber}
 	payload, err := inputsToHex(inputs)
 	assert.NoError(t, err)
 
@@ -76,7 +76,7 @@ func TestGasPriceOracle(t *testing.T) {
 			Balance: big.NewInt(0),
 			Storage: map[common.Hash]common.Hash{
 				common.HexToHash("0x1"): common.HexToHash("0x01"),                         // l1BaseFee 1
-				common.HexToHash("0x3"): common.HexToHash(hex.EncodeToString(byteResult)), // all constants
+				common.HexToHash("0x3"): common.HexToHash(hex.EncodeToString(byteResult)), // all other constants
 				common.HexToHash("0x7"): common.HexToHash("0x01"),                         // l1BlobBaseFee 1
 
 			},
