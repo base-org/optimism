@@ -22,7 +22,7 @@ const (
 	L1InfoFuncEcotoneSignature = "setL1BlockValuesEcotone()"
 	L1InfoArguments            = 8
 	L1InfoBedrockLen           = 4 + 32*L1InfoArguments
-	L1InfoEcotoneLen           = 4 + 32*5      // after Ecotone upgrade, args are packed into 5 32-byte slots
+	L1InfoEcotoneLen           = 4 + 32*5 // after Ecotone upgrade, args are packed into 5 32-byte slots
 )
 
 var (
@@ -270,22 +270,24 @@ func L1InfoDeposit(rollupCfg *rollup.Config, sysCfg eth.SystemConfig, seqNumber 
 		BatcherAddr:    sysCfg.BatcherAddr,
 	}
 	var data []byte
-	l1BlockInfo.BlobBaseFee = block.BlobBaseFee()
-	if l1BlockInfo.BlobBaseFee == nil {
-		// The L2 spec states to use the MIN_BLOB_GASPRICE from EIP-4844 if not yet active on L1.
-		l1BlockInfo.BlobBaseFee = big.NewInt(1)
-	}
-	blobBaseFeeScalar, baseFeeScalar, err := sysCfg.EcotoneScalars()
-	if err != nil {
-		return nil, err
-	}
-	l1BlockInfo.BlobBaseFeeScalar = blobBaseFeeScalar
-	l1BlockInfo.BaseFeeScalar = baseFeeScalar
-	out, err := l1BlockInfo.marshalBinaryEcotone()
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal Ecotone l1 block info: %w", err)
-	}
-	data = out
+
+	if isEcotoneButNotFirstBlock(rollupCfg, l2BlockTime) {
+		l1BlockInfo.BlobBaseFee = block.BlobBaseFee()
+		if l1BlockInfo.BlobBaseFee == nil {
+			// The L2 spec states to use the MIN_BLOB_GASPRICE from EIP-4844 if not yet active on L1.
+			l1BlockInfo.BlobBaseFee = big.NewInt(1)
+		}
+		blobBaseFeeScalar, baseFeeScalar, err := sysCfg.EcotoneScalars()
+		if err != nil {
+			return nil, err
+		}
+		l1BlockInfo.BlobBaseFeeScalar = blobBaseFeeScalar
+		l1BlockInfo.BaseFeeScalar = baseFeeScalar
+		out, err := l1BlockInfo.marshalBinaryEcotone()
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal Ecotone l1 block info: %w", err)
+		}
+		data = out
 	} else {
 		l1BlockInfo.L1FeeOverhead = sysCfg.Overhead
 		l1BlockInfo.L1FeeScalar = sysCfg.Scalar
