@@ -63,14 +63,10 @@ contract GasPriceOracle is ISemver {
         require(isFjord, "GasPriceOracle: getL1FeeUpperBound only supports Fjord");
 
         int256 txSize = int256(_unsignedTxSize) + 68;
-        uint256 feeScaled = baseFeeScalar() * 16 * l1BaseFee() + blobBaseFeeScalar() * blobBaseFee();
-        // txSize / 255 + 16 is the pratical fastlz upper-bound covers %99.99 txs.
+         // txSize / 255 + 16 is the pratical fastlz upper-bound covers %99.99 txs.
         int256 flzUpperBound = txSize / 255 + 16;
-        int256 cost = COST_INTERCEPT + COST_FASTLZ_COEF * flzUpperBound + COST_TX_SIZE_COEF * txSize;
-        if (cost < 0) {
-            cost = 0;
-        }
-        return uint256(cost) * feeScaled / (10 ** (DECIMALS * 2));
+
+        return _fjordL1Cost(flzUpperBound, txSize);
     }
 
     /// @notice Set chain to be Ecotone chain (callable by depositor account)
@@ -189,15 +185,11 @@ contract GasPriceOracle is ISemver {
     /// @param _data Unsigned fully RLP-encoded transaction to get the L1 fee for.
     /// @return L1 fee that should be paid for the tx
     function _getL1FeeFjord(bytes memory _data) internal view returns (uint256) {
-        uint256 feeScaled = baseFeeScalar() * 16 * l1BaseFee() + blobBaseFeeScalar() * blobBaseFee();
         // add 68 to both size values to account for unsigned tx:
         uint256 fastlzSize = LibZip.flzCompress(_data).length + 68;
         uint256 txSize = _data.length + 68;
-        int256 cost = COST_INTERCEPT + COST_FASTLZ_COEF * int256(fastlzSize) + COST_TX_SIZE_COEF * int256(txSize);
-        if (cost < 0) {
-            cost = 0;
-        }
-        return uint256(cost) * feeScaled / (10 ** (DECIMALS * 2));
+
+        return _fjordL1Cost(int256(fastlzSize), int256(txSize));
     }
 
     /// @notice L1 gas estimation calculation.
@@ -214,5 +206,20 @@ contract GasPriceOracle is ISemver {
             }
         }
         return total + (68 * 16);
+    }
+
+    /// @notice Fjord L1 cost based on the compressed and original tx size.
+    /// @param _fastlzSize fastlz compressed tx size.
+    /// @param _txSize original tx size.
+    /// @return Fjord L1 fee that should be paid for the tx
+    function _fjordL1Cost(int256 _fastlzSize, int256 _txSize) internal view returns (uint256) {
+        uint256 feeScaled = baseFeeScalar() * 16 * l1BaseFee() + blobBaseFeeScalar() * blobBaseFee();
+
+        int256 cost = COST_INTERCEPT + COST_FASTLZ_COEF * _fastlzSize + COST_TX_SIZE_COEF * _txSize;
+        if (cost < 0) {
+            cost = 0;
+        }
+
+        return uint256(cost) * feeScaled / (10 ** (DECIMALS * 2));
     }
 }
