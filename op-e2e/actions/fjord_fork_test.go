@@ -4,24 +4,22 @@ import (
 	"context"
 	"testing"
 
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/log"
+	"github.com/stretchr/testify/require"
+
 	"github.com/ethereum-optimism/optimism/op-bindings/bindings"
 	"github.com/ethereum-optimism/optimism/op-bindings/predeploys"
 	"github.com/ethereum-optimism/optimism/op-chain-ops/genesis"
-	"github.com/ethereum-optimism/optimism/op-node/rollup/derive"
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/stretchr/testify/require"
-
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/ethereum/go-ethereum/log"
-
 	"github.com/ethereum-optimism/optimism/op-e2e/e2eutils"
+	"github.com/ethereum-optimism/optimism/op-node/rollup/derive"
 	"github.com/ethereum-optimism/optimism/op-service/testlog"
 )
 
 var (
-	fjordL1BlockCodeHash        = common.HexToHash("0x12e89c50902af815d85608f9a2a35579a74e9491077b94211c96f79ef265bf9c")
 	fjordGasPriceOracleCodeHash = common.HexToHash("0xcb82de8a527fee307214950192bf0ff5b2701c6b6eda2fbd025cf6d4075fbe38")
 )
 
@@ -33,7 +31,7 @@ func TestFjordNetworkUpgradeTransactions(gt *testing.T) {
 
 	dp.DeployConfig.L1CancunTimeOffset = &genesisBlock // can be removed once Cancun on L1 is the default
 
-	// Activate all forks at genesis, and schedule Ecotone the block after
+	// Activate all forks at genesis, and schedule Fjord the block after
 	dp.DeployConfig.L2GenesisRegolithTimeOffset = &genesisBlock
 	dp.DeployConfig.L2GenesisCanyonTimeOffset = &genesisBlock
 	dp.DeployConfig.L2GenesisDeltaTimeOffset = &genesisBlock
@@ -66,12 +64,12 @@ func TestFjordNetworkUpgradeTransactions(gt *testing.T) {
 	require.Equal(t, sequencer.L2Unsafe().Number, latestBlock.Number().Uint64())
 
 	transactions := latestBlock.Transactions()
-	// L1Block: 1 set-L1-info + 2 deploys + 2 upgradeTo + 1 enable fjord on GPO
+	// L1Block: 1 set-L1-info + 1 deploys + 1 upgradeTo + 1 enable fjord on GPO
 	// See [derive.FjordNetworkUpgradeTransactions]
-	require.Equal(t, 6, len(transactions))
+	require.Equal(t, 4, len(transactions))
 
 	// All transactions are successful
-	for i := 1; i < 6; i++ {
+	for i := 1; i < 4; i++ {
 		txn := transactions[i]
 		receipt, err := ethCl.TransactionReceipt(context.Background(), txn.Hash())
 		require.NoError(t, err)
@@ -79,7 +77,6 @@ func TestFjordNetworkUpgradeTransactions(gt *testing.T) {
 		require.NotEmpty(t, txn.Data(), "upgrade tx must provide input data")
 	}
 
-	expectedL1BlockAddress := crypto.CreateAddress(derive.L1BlockFjordDeployerAddress, 0)
 	expectedGasPriceOracleAddress := crypto.CreateAddress(derive.GasPriceOracleFjordDeployerAddress, 0)
 
 	// Gas Price Oracle Proxy is updated
@@ -88,13 +85,6 @@ func TestFjordNetworkUpgradeTransactions(gt *testing.T) {
 	require.Equal(t, expectedGasPriceOracleAddress, common.BytesToAddress(updatedGasPriceOracleAddress))
 	require.NotEqualf(t, initialGasPriceOracleAddress, updatedGasPriceOracleAddress, "Gas Price Oracle Proxy address should have changed")
 	verifyCodeHashMatches(t, ethCl, expectedGasPriceOracleAddress, fjordGasPriceOracleCodeHash)
-
-	// L1Block Proxy is updated
-	updatedL1BlockAddress, err := ethCl.StorageAt(context.Background(), predeploys.L1BlockAddr, genesis.ImplementationSlot, latestBlock.Number())
-	require.NoError(t, err)
-	require.Equal(t, expectedL1BlockAddress, common.BytesToAddress(updatedL1BlockAddress))
-	require.NotEqualf(t, initialL1BlockAddress, updatedL1BlockAddress, "L1Block Proxy address should have changed")
-	verifyCodeHashMatches(t, ethCl, expectedL1BlockAddress, fjordL1BlockCodeHash)
 
 	// Get gas price from oracle
 	gasPriceOracle, err := bindings.NewGasPriceOracleCaller(predeploys.GasPriceOracleAddr, ethCl)
