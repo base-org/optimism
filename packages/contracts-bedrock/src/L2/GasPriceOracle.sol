@@ -64,7 +64,7 @@ contract GasPriceOracle is ISemver {
 
         int256 txSize = int256(_unsignedTxSize) + 68;
          // txSize / 255 + 16 is the pratical fastlz upper-bound covers %99.99 txs.
-        int256 flzUpperBound = txSize / 255 + 16;
+        int256 flzUpperBound = txSize + txSize / 255 + 16;
 
         return _fjordL1Cost(flzUpperBound, txSize);
     }

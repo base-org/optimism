@@ -116,8 +116,18 @@ func TestGasPriceOracle(t *testing.T) {
 		l1BlobFeeScaled := uint64(blobFeeScalar) * l1BlobBaseFee.Uint64()
 		l1FeeScaled := l1BaseFeeScaled + l1BlobFeeScaled
 		fastLzLength := types.FlzCompressLen(b)
-		expected := ((uint64(costIntercept) + uint64(costFastlzCoef)*uint64(fastLzLength+68) + uint64(costTxSizeCoef)*uint64(len(b)+68)) * uint64(l1FeeScaled)) / 1e12
-		assert.Equal(t, used.Uint64(), uint64(expected), path)
+		txSize := len(b) + 68
+		expected := ((int64(costIntercept) + int64(costFastlzCoef)*int64(fastLzLength+68) + int64(costTxSizeCoef)*int64(txSize)) * int64(l1FeeScaled)) / 1e12
+		assert.Equal(t, uint64(expected), used.Uint64(), path)
+
+		upperBound, err := caller.GetL1FeeUpperBound(&bind.CallOpts{}, big.NewInt(int64(len(b))))
+		if err != nil {
+			return err
+		}
+		flzUpperBound := txSize + txSize/255 + 16
+		expectedFeeUpperBound := ((int64(costIntercept) + int64(costFastlzCoef)*int64(flzUpperBound) + int64(costTxSizeCoef)*int64(txSize)) * int64(l1FeeScaled)) / 1e12
+		assert.Equal(t, uint64(expectedFeeUpperBound), upperBound.Uint64(), path)
+
 		atLeastOnce = true
 		return nil
 	})
