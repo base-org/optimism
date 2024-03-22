@@ -17,7 +17,6 @@ import (
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 
 	"github.com/ethereum-optimism/optimism/op-bindings/bindings"
 	"github.com/ethereum-optimism/optimism/op-bindings/predeploys"
@@ -101,12 +100,7 @@ func TestGasPriceOracle(t *testing.T) {
 			return err
 		}
 
-		txData, err := hex.DecodeString(txHex)
-		if err != nil {
-			return err
-		}
-
-		used, err := caller.GetL1Fee(&bind.CallOpts{}, txData)
+		used, err := caller.GetL1Fee(&bind.CallOpts{}, b)
 		if err != nil {
 			return err
 		}
@@ -118,7 +112,6 @@ func TestGasPriceOracle(t *testing.T) {
 		}
 
 		l1BaseFeeScaled := uint64(baseFeeScalar) * l1BaseFee.Uint64() * 16
-		fmt.Println(baseFeeScalar, l1BaseFee.Uint64())
 		l1BlobBaseFee, err := caller.BlobBaseFee(&bind.CallOpts{})
 		if err != nil {
 			return err
@@ -131,8 +124,6 @@ func TestGasPriceOracle(t *testing.T) {
 		expected := ((int64(costIntercept) + int64(costFastlzCoef)*int64(fastLzLength+68) + int64(costTxSizeCoef)*int64(txSize)) * int64(l1FeeScaled)) / 1e12
 		assert.Equal(t, uint64(expected), used.Uint64(), path)
 
-		fmt.Println("fee!!!!!!!!!!", l1FeeScaled, l1BaseFeeScaled, l1BlobFeeScaled)
-		require.FailNow(t, "fail")
 		upperBound, err := caller.GetL1FeeUpperBound(&bind.CallOpts{}, big.NewInt(int64(len(b))))
 		if err != nil {
 			return err

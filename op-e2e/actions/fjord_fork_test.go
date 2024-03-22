@@ -25,9 +25,7 @@ import (
 var (
 	fjordGasPriceOracleCodeHash = common.HexToHash("0x56d6f6aae2e5b1ed447f2094f5ba59b79404a8ccefcac4778dc4bba085bd7733")
 	// https://basescan.org/tx/0x8debb2fe54200183fb8baa3c6dbd8e6ec2e4f7a4add87416cd60336b8326d16a
-	txHex              = "02f875822105819b8405709fb884057d460082e97f94273ca93a52b817294830ed7572aa591ccfa647fd80881249c58b0021fb3fc080a05bb08ccfd68f83392e446dac64d88a2d28e7072c06502dfabc4a77e77b5c7913a05878d53dd4ebba4f6367e572d524dffcabeec3abb1d8725ee3ac5dc32e1852e3"
-	expectedGasUsed    = uint64(124)
-	expectedUpperBound = uint64(1)
+	txHex = "02f875822105819b8405709fb884057d460082e97f94273ca93a52b817294830ed7572aa591ccfa647fd80881249c58b0021fb3fc080a05bb08ccfd68f83392e446dac64d88a2d28e7072c06502dfabc4a77e77b5c7913a05878d53dd4ebba4f6367e572d524dffcabeec3abb1d8725ee3ac5dc32e1852e3"
 
 	costTxSizeCoef int64 = -88_664
 	costFastlzCoef int64 = 1_031_462
@@ -104,6 +102,7 @@ func TestFjordNetworkUpgradeTransactions(gt *testing.T) {
 	require.NoError(t, err)
 	require.True(t, isFjord)
 
+	// Check GetL1Fee is updated
 	txData, err := hex.DecodeString(txHex)
 	require.NoError(t, err)
 
@@ -116,6 +115,7 @@ func TestFjordNetworkUpgradeTransactions(gt *testing.T) {
 
 	require.Equal(t, cost.Uint64(), used.Uint64())
 
+	// Check that L1FeeUppberBound works
 	upperBound, err := gasPriceOracle.GetL1FeeUpperBound(&bind.CallOpts{}, big.NewInt(int64(len(txData))))
 	require.NoError(t, err)
 
@@ -125,6 +125,11 @@ func TestFjordNetworkUpgradeTransactions(gt *testing.T) {
 	require.Equal(t, upperBoundCost.Uint64(), upperBound.Uint64())
 }
 
+// The new cost function:
+// l1BaseFeeScaled = l1BaseFeeScalar * l1BaseFee * 16
+// l1BlobFeeScaled = l1BlobFeeScalar * l1BlobBaseFee
+// l1FeeScaled = l1BaseFeeScaled + l1BlobFeeScaled
+// ((intercept + fastlzCoef*fastlzLength + uncompressedTxCoef*uncompressedTxSize) * l1FeeScaled) / 1e12
 func fjordL1Cost(
 	t require.TestingT,
 	gasPriceOracle *bindings.GasPriceOracleCaller,
