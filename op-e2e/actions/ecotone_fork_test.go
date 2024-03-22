@@ -2,6 +2,7 @@ package actions
 
 import (
 	"context"
+	"fmt"
 	"math/big"
 	"testing"
 
@@ -188,6 +189,8 @@ func TestEcotoneNetworkUpgradeTransactions(gt *testing.T) {
 	require.NoError(t, err)
 	require.True(t, uint64(basefeeScalar) == dp.DeployConfig.GasPriceOracleScalar, "must match deploy config")
 
+	fmt.Println("asdf------------------", uint64(basefeeScalar))
+	require.Fail(t, "fail")
 	cost, err = gasPriceOracle.GetL1Fee(nil, []byte{0, 1, 2, 3, 4})
 	require.NoError(t, err)
 	// The GPO getL1Fee contract returns the L1 fee with approximate signature overhead pre-included,

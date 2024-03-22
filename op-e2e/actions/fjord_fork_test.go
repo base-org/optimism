@@ -2,8 +2,11 @@ package actions
 
 import (
 	"context"
+	"encoding/hex"
+	"math/big"
 	"testing"
 
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -20,7 +23,15 @@ import (
 )
 
 var (
-	fjordGasPriceOracleCodeHash = common.HexToHash("0xcb82de8a527fee307214950192bf0ff5b2701c6b6eda2fbd025cf6d4075fbe38")
+	fjordGasPriceOracleCodeHash = common.HexToHash("0x56d6f6aae2e5b1ed447f2094f5ba59b79404a8ccefcac4778dc4bba085bd7733")
+	// https://basescan.org/tx/0x8debb2fe54200183fb8baa3c6dbd8e6ec2e4f7a4add87416cd60336b8326d16a
+	txHex              = "02f875822105819b8405709fb884057d460082e97f94273ca93a52b817294830ed7572aa591ccfa647fd80881249c58b0021fb3fc080a05bb08ccfd68f83392e446dac64d88a2d28e7072c06502dfabc4a77e77b5c7913a05878d53dd4ebba4f6367e572d524dffcabeec3abb1d8725ee3ac5dc32e1852e3"
+	expectedGasUsed    = uint64(124)
+	expectedUpperBound = uint64(1)
+
+	costTxSizeCoef int64 = -88_664
+	costFastlzCoef int64 = 1_031_462
+	costIntercept  int64 = -27_321_890
 )
 
 func TestFjordNetworkUpgradeTransactions(gt *testing.T) {
@@ -51,8 +62,6 @@ func TestFjordNetworkUpgradeTransactions(gt *testing.T) {
 
 	// Get current implementations addresses (by slot) for L1Block + GasPriceOracle
 	initialGasPriceOracleAddress, err := ethCl.StorageAt(context.Background(), predeploys.GasPriceOracleAddr, genesis.ImplementationSlot, nil)
-	require.NoError(t, err)
-	initialL1BlockAddress, err := ethCl.StorageAt(context.Background(), predeploys.L1BlockAddr, genesis.ImplementationSlot, nil)
 	require.NoError(t, err)
 
 	// Build to the Fjord block
@@ -95,5 +104,53 @@ func TestFjordNetworkUpgradeTransactions(gt *testing.T) {
 	require.NoError(t, err)
 	require.True(t, isFjord)
 
-	// TODO: Add additional tests for post Fjord behavior
+	txData, err := hex.DecodeString(txHex)
+	require.NoError(t, err)
+
+	used, err := gasPriceOracle.GetL1Fee(&bind.CallOpts{}, txData)
+	require.NoError(t, err)
+
+	fastLzLength := types.FlzCompressLen(txData)
+
+	cost := fjordL1Cost(t, gasPriceOracle, int64(fastLzLength), int64(len(txData)))
+
+	require.Equal(t, cost.Uint64(), used.Uint64())
+
+	upperBound, err := gasPriceOracle.GetL1FeeUpperBound(&bind.CallOpts{}, big.NewInt(int64(len(txData))))
+	require.NoError(t, err)
+
+	flzUpperBound := len(txData) + len(txData)/255 + 16
+
+	upperBoundCost := fjordL1Cost(t, gasPriceOracle, int64(flzUpperBound), int64(len(txData)))
+	require.Equal(t, upperBoundCost.Uint64(), upperBound.Uint64())
+}
+
+func fjordL1Cost(
+	t require.TestingT,
+	gasPriceOracle *bindings.GasPriceOracleCaller,
+	fastLzLength,
+	unsignedTxSize int64,
+) *big.Int {
+	baseFeeScalar, err := gasPriceOracle.BaseFeeScalar(nil)
+	require.NoError(t, err)
+	l1BaseFee, err := gasPriceOracle.L1BaseFee(nil)
+	require.NoError(t, err)
+	blobBaseFeeScalar, err := gasPriceOracle.BlobBaseFeeScalar(nil)
+	require.NoError(t, err)
+	blobBaseFee, err := gasPriceOracle.BlobBaseFee(nil)
+	require.NoError(t, err)
+
+	feeScaled := new(big.Int).Mul(new(big.Int).SetUint64(uint64(baseFeeScalar)), big.NewInt(16))
+	feeScaled = new(big.Int).Mul(feeScaled, l1BaseFee)
+	feeScaled = new(big.Int).Add(feeScaled, new(big.Int).Mul(new(big.Int).SetUint64(uint64(blobBaseFeeScalar)), blobBaseFee))
+
+	cost := new(big.Int).Mul(new(big.Int).SetInt64(costFastlzCoef), new(big.Int).SetInt64(fastLzLength+68))
+	cost = new(big.Int).Add(cost, new(big.Int).SetInt64(costIntercept))
+	cost = new(big.Int).Add(cost, new(big.Int).Mul(new(big.Int).SetInt64(costTxSizeCoef), new(big.Int).SetInt64(unsignedTxSize+68)))
+	require.True(t, cost.Sign() >= 0)
+
+	cost = new(big.Int).Mul(cost, feeScaled)
+	cost = new(big.Int).Div(cost, new(big.Int).SetInt64(int64(1e12)))
+
+	return cost
 }
