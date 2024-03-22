@@ -17,15 +17,9 @@ import (
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 
 	"github.com/ethereum-optimism/optimism/op-bindings/bindings"
 	"github.com/ethereum-optimism/optimism/op-bindings/predeploys"
-)
-
-var (
-	// https://basescan.org/tx/0x8debb2fe54200183fb8baa3c6dbd8e6ec2e4f7a4add87416cd60336b8326d16a
-	txHex = "02f875822105819b8405709fb884057d460082e97f94273ca93a52b817294830ed7572aa591ccfa647fd80881249c58b0021fb3fc080a05bb08ccfd68f83392e446dac64d88a2d28e7072c06502dfabc4a77e77b5c7913a05878d53dd4ebba4f6367e572d524dffcabeec3abb1d8725ee3ac5dc32e1852e3"
 )
 
 func inputsToHex(inputs []interface{}) ([]byte, error) {
@@ -101,12 +95,7 @@ func TestGasPriceOracle(t *testing.T) {
 			return err
 		}
 
-		txData, err := hex.DecodeString(txHex)
-		if err != nil {
-			return err
-		}
-
-		used, err := caller.GetL1Fee(&bind.CallOpts{}, txData)
+		used, err := caller.GetL1Fee(&bind.CallOpts{}, b)
 		if err != nil {
 			return err
 		}
@@ -118,7 +107,6 @@ func TestGasPriceOracle(t *testing.T) {
 		}
 
 		l1BaseFeeScaled := uint64(baseFeeScalar) * l1BaseFee.Uint64() * 16
-		fmt.Println(baseFeeScalar, l1BaseFee.Uint64())
 		l1BlobBaseFee, err := caller.BlobBaseFee(&bind.CallOpts{})
 		if err != nil {
 			return err
@@ -131,8 +119,6 @@ func TestGasPriceOracle(t *testing.T) {
 		expected := ((int64(costIntercept) + int64(costFastlzCoef)*int64(fastLzLength+68) + int64(costTxSizeCoef)*int64(txSize)) * int64(l1FeeScaled)) / 1e12
 		assert.Equal(t, uint64(expected), used.Uint64(), path)
 
-		fmt.Println("fee!!!!!!!!!!", l1FeeScaled, l1BaseFeeScaled, l1BlobFeeScaled)
-		require.FailNow(t, "fail")
 		upperBound, err := caller.GetL1FeeUpperBound(&bind.CallOpts{}, big.NewInt(int64(len(b))))
 		if err != nil {
 			return err
