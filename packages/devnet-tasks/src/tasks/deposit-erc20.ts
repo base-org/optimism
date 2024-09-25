@@ -218,7 +218,7 @@ task('deposit-erc20', 'Deposits WETH9 onto L2.')
     })
 
     const params = await OptimismPortal.params()
-    console.log('Intial OptimismPortal.params:')
+    console.log('Initial OptimismPortal.params:')
     console.log(params)
 
     console.log('Deploying WETH9 to L1')
