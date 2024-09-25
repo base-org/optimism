@@ -10,9 +10,7 @@ import (
 	"github.com/ethereum-optimism/optimism/op-supervisor/supervisor/types"
 )
 
-var (
-	ErrUnknownChain = errors.New("unknown chain")
-)
+var ErrUnknownChain = errors.New("unknown chain")
 
 type LogStorage interface {
 	io.Closer
@@ -22,24 +20,18 @@ type LogStorage interface {
 	ClosestBlockInfo(blockNum uint64) (uint64, backendTypes.TruncatedHash, error)
 }
 
-type HeadsStorage interface {
-}
+type HeadsStorage interface{}
 
 type ChainsDB struct {
 	logDBs map[types.ChainID]LogStorage
-	heads  HeadsStorage
+	heads   HeadsStorage
 }
 
 func NewChainsDB(logDBs map[types.ChainID]LogStorage, heads HeadsStorage) *ChainsDB {
-	return &ChainsDB{
-		logDBs: logDBs,
-		heads:  heads,
-	}
+	return &ChainsDB{logDBs: logDBs, heads: heads}
 }
 
 // Resume prepares the chains db to resume recording events after a restart.
-// It rewinds the database to the last block that is guaranteed to have been fully recorded to the database
-// to ensure it can resume recording from the first log of the next block.
 func (db *ChainsDB) Resume() error {
 	for chain, logStore := range db.logDBs {
 		if err := Resume(logStore); err != nil {
@@ -50,11 +42,10 @@ func (db *ChainsDB) Resume() error {
 }
 
 func (db *ChainsDB) LatestBlockNum(chain types.ChainID) uint64 {
-	logDB, ok := db.logDBs[chain]
-	if !ok {
-		return 0
+	if logDB, ok := db.logDBs[chain]; ok {
+		return logDB.LatestBlockNum()
 	}
-	return logDB.LatestBlockNum()
+	return 0
 }
 
 func (db *ChainsDB) AddLog(chain types.ChainID, logHash backendTypes.TruncatedHash, block eth.BlockID, timestamp uint64, logIdx uint32, execMsg *backendTypes.ExecutingMessage) error {
