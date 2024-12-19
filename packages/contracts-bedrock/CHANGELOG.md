@@ -246,7 +246,7 @@
 
 ### Patch Changes
 
-- 88dde7c8: Uses assert rather than a require statements to check for conditions we believe are unreachable.This is more semantically explicit, and should enable us to more effectively use some advanced analysis methods in our testing.
+- 88dde7c8: Uses assert rather than require statements to check for conditions we believe are unreachable.This is more semantically explicit, and should enable us to more effectively use some advanced analysis methods in our testing.
 - 7215f4ce: Bump ethers to 5.7.0 globally
 - 249a8ed6: Fixed a backwards compatibility issue in which incorrect events were emitted during a failed deposit finalization on the L2 bridge.
 - 7d7c4fdf: Makes spacers private and updates names to reflect slot, offset, and length.
@@ -319,7 +319,7 @@
 - 45541553: Emit an extra event when withdrawals are initiated to make chainops easier
 - 3dd296e8: Fix portal deployment to have L2OutputOracle proxy address
 - fe94b864: Add watch task
-- 28649d64: Add harhdat forge contract verification support
+- 28649d64: Add hardhat forge contract verification support
 - 898c7ac5: Update hardhat-forge dep, remove dead deps
 - 51a1595b: bedrock-goerli-96f44f79 deployment
 - 8ae39154: Update deposit transaction type
